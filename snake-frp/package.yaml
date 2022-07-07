@@ -36,6 +36,7 @@ executables:
     dependencies:
     - snake-frp
     - gloss
+    - utility-ht
 
 tests:
   snake-frp-test:

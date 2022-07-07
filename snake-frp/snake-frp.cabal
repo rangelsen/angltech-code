@@ -45,6 +45,7 @@ executable snake-frp-exe
       base >=4.7 && <5
     , gloss
     , snake-frp
+    , utility-ht
   default-language: Haskell2010
 
 test-suite snake-frp-test
