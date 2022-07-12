@@ -1,7 +1,7 @@
 module Main where
 
 import Graphics.Gloss
-import Graphics.Gloss.Interface.IO.Game as Gloss
+import Graphics.Gloss.Interface.IO.Game as Gloss hiding (Up)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Tuple.Strict
 
@@ -11,9 +11,11 @@ type WindowPos = (Float, Float)
 type Size = (Int, Int)
 type BoardSize = Size
 type WindowSize = Size
-type Snake = [Coord]
+type Snake = [BoardPos]
+data Direction = Up | Down | Left | Right deriving (Show, Eq)
 data GameState = GameState
     { snake :: Snake
+    , direction :: Direction
     }
 
 boardSize = (10, 10) :: BoardSize
@@ -26,18 +28,25 @@ combinePair f (a1, a2) (a3, a4) = (f a1 a3, f a2 a4)
 applyPair :: (a -> b) -> (a, a) -> (b, b)
 applyPair f (a1, a2) = (f a1, f a2)
 
-pairToFloat coord = applyPair fromIntegral coord
+pairToFloat = applyPair fromIntegral
 
 drawScene :: GameState -> IORef Picture -> IO ()
 drawScene state picRef = do
-    drawSnake (snake state) picRef
+    pic <- readIORef picRef
+    let newPic = drawSnake (snake state) pic
+    writeIORef picRef newPic
 
-drawSnake :: Snake -> IORef Picture -> IO ()
-drawSnake snake picRef =
+drawSnake :: Snake -> Picture -> Picture
+drawSnake [] pic = pic
+drawSnake (coord:coords) pic =
     let (w, h) = cellSize
-        (x, y) = boardPosToWindow (9, 9)
+        (x, y) = boardPosToWindow coord
         rect = rectangleSolid w h
-    in writeIORef picRef (translate x y rect)
+        newPic = pictures
+            [ translate x y rect
+            , pic
+            ]
+    in drawSnake coords newPic
 
 boardPosToWindow :: BoardPos -> WindowPos
 boardPosToWindow boardPos =
@@ -49,7 +58,7 @@ boardPosToWindow boardPos =
 main :: IO ()
 main = do
   scenePic <- newIORef blank
-  drawScene (GameState [(1,0), (0, 0)]) scenePic
+  drawScene (GameState [(2, 2), (2, 3), (2, 1), (1, 1)] Up) scenePic
 
   Gloss.playIO
     (InWindow "Snake" windowSize (800, 200))
