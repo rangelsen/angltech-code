@@ -1,16 +1,20 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Main where
 
 import Graphics.Gloss
-import Graphics.Gloss.Interface.IO.Game as Gloss hiding (Up)
+import qualified Graphics.Gloss.Interface.IO.Game as Gloss
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Tuple.Strict
+import Reactive.Banana.Frameworks
+import Reactive.Banana
 
 type Coord = (Int, Int)
 type BoardPos = Coord
 type WindowPos = (Float, Float)
-type Size = (Int, Int)
-type BoardSize = Size
-type WindowSize = Size
+type GridSize = (Int, Int)
+type BoardSize = GridSize
+type WindowSize = GridSize
 type Snake = [BoardPos]
 data Direction = Up | Down | Left | Right deriving (Show, Eq)
 data GameState = GameState
@@ -44,8 +48,7 @@ drawSnake (coord:coords) pic =
         rect = rectangleSolid w h
         newPic = pictures
             [ translate x y rect
-            , pic
-            ]
+            , pic ]
     in drawSnake coords newPic
 
 boardPosToWindow :: BoardPos -> WindowPos
@@ -55,17 +58,30 @@ boardPosToWindow boardPos =
         (cellW, cellH) = cellSize
     in (x - winW/2 + cellW/2 , y - winH/2 + cellH/2)
 
+gameLogic :: Event Gloss.Event -> Moment (Behavior Picture)
+gameLogic glossEvent = do
+    let up :: Gloss.Event = Gloss.EventKey (Gloss.SpecialKey Gloss.KeyUp) Gloss.Down (Gloss.Modifiers Gloss.Up Gloss.Up Gloss.Up) (0, 0)
+        pic :: Behavior Picture = pure blank
+    pure pic
+
 main :: IO ()
 main = do
+  (eventHandler, fireEvent) <- newAddHandler
+  network <- compile $ do
+    glossEvent <- fromAddHandler eventHandler
+    picture <- liftMoment (gameLogic glossEvent)
+    changes picture >>= (\x -> reactimate' (fmap (\_ -> return (putStrLn "hi")) x))
+    reactimate ((putStrLn . show) <$> glossEvent)
+  actuate network
+
   scenePic <- newIORef blank
   drawScene (GameState [(2, 2), (2, 3), (2, 1), (1, 1)] Up) scenePic
-
   Gloss.playIO
     (InWindow "Snake" windowSize (800, 200))
     white
     30
     ()
     (\() -> readIORef scenePic)
-    (\_ () -> pure ())
+    (\e () -> fireEvent e)
     (\_ () -> pure ())
 

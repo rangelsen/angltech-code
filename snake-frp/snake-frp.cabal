@@ -44,6 +44,7 @@ executable snake-frp-exe
   build-depends:
       base >=4.7 && <5
     , gloss
+    , reactive-banana
     , snake-frp
     , utility-ht
   default-language: Haskell2010
